@@ -24,10 +24,11 @@ scale = 1.0/sqrt(p*N);
 M = sprandn(N,N,p)*g*scale;
 M = full(M);
 
+nUnitsOut = 2;
 nRec2Out = N;
-wo = zeros(nRec2Out,1);
-dw = zeros(nRec2Out,1);
-wf = 2.0*(rand(N,1)-0.5);
+wo = zeros(nRec2Out,nUnitsOut);
+dw = zeros(nRec2Out,nUnitsOut);
+wf = 2.0*(rand(N,nUnitsOut)-0.5);
 
 disp(['   N: ', num2str(N)]);
 disp(['   g: ', num2str(g)]);
@@ -48,20 +49,22 @@ ft = (amp/1.0)*sin(1.0*pi*freq*simtime) + ...
      (amp/2.0)*sin(2.0*pi*freq*simtime) + ...
      (amp/6.0)*sin(3.0*pi*freq*simtime) + ...
      (amp/3.0)*sin(4.0*pi*freq*simtime);
-ft = ft/1.5;
+ft = repmat(ft/1.5,nUnitsOut,1);
+ft = cell2mat(arrayfun(@(k) ft(k,:)*1.5^k, 1:size(ft,1),'UniformOutput',false).');
 
 ft2 = (amp/1.0)*sin(1.0*pi*freq*simtime2) + ...
       (amp/2.0)*sin(2.0*pi*freq*simtime2) + ...
       (amp/6.0)*sin(3.0*pi*freq*simtime2) + ...
       (amp/3.0)*sin(4.0*pi*freq*simtime2);
-ft2 = ft2/1.5;
+ft2 = repmat(ft2/1.5,nUnitsOut,1);
+ft2 = cell2mat(arrayfun(@(k) ft2(k,:)*1.5^k, 1:size(ft,1),'UniformOutput',false).');
 
 
-wo_len = zeros(1,simtime_len);    
-zt = zeros(1,simtime_len);
-zpt = zeros(1,simtime_len);
+wo_len = zeros(nUnitsOut,simtime_len);    
+zt = zeros(nUnitsOut,simtime_len);
+zpt = zeros(nUnitsOut,simtime_len);
 x0 = 0.5*randn(N,1);
-z0 = 0.5*randn(1,1);
+z0 = 0.5*randn(nUnitsOut,1);
 
 x = x0; 
 r = tanh(x);
@@ -80,7 +83,7 @@ for t = simtime
 	hold on;
 	plot(simtime, zt, 'linewidth', linewidth, 'color', 'red');
 	title('training', 'fontsize', fontsize, 'fontweight', fontweight);
-	legend('f', 'z');	
+	legend([repmat('f',nUnitsOut,1);repmat('z',nUnitsOut,1)]);
 	xlabel('time', 'fontsize', fontsize, 'fontweight', fontweight);
 	ylabel('f and z', 'fontsize', fontsize, 'fontweight', fontweight);
 	hold off;
@@ -89,7 +92,7 @@ for t = simtime
 	plot(simtime, wo_len, 'linewidth', linewidth);
 	xlabel('time', 'fontsize', fontsize, 'fontweight', fontweight);
 	ylabel('|w|', 'fontsize', fontsize, 'fontweight', fontweight);
-	legend('|w|');
+    legend(repmat('|w|',nUnitsOut,1));
 	pause(0.5);	
     end
     
@@ -99,26 +102,27 @@ for t = simtime
     z = wo'*r;
     
     if mod(ti, learn_every) == 0
-	% update inverse correlation matrix
-	k = P*r;
-	rPr = r'*k;
-	c = 1.0/(1.0 + rPr);
-	P = P - k*(k'*c);
-    
-	% update the error for the linear readout
-	e = z-ft(ti);
-	
-	% update the output weights
-	dw = -e*k*c;	
-	wo = wo + dw;
+        % update inverse correlation matrix
+        k = P*r;
+        rPr = r'*k;
+        c = 1.0/(1.0 + rPr);
+        P = P - k*(k'*c);
+
+        % update the error for the linear readout
+        e = z-ft(:,ti);
+
+        % update the output weights
+        %dw = diag(-repmat(e,1,length(k))*repmat(k,1,nUnitsOut)*c);
+        dw = (-e*k.'*c).';
+        wo = wo + dw;
     end
     
     % Store the output of the system.
-    zt(ti) = z;
-    wo_len(ti) = sqrt(wo'*wo);	
+    zt(:,ti) = z;
+    wo_len(:,ti) = diag(sqrt(wo'*wo));	
 end
-error_avg = sum(abs(zt-ft))/simtime_len;
-disp(['Training MAE: ' num2str(error_avg,3)]);    
+error_avg = sum(abs(zt-ft),2)/simtime_len;
+disp(['Training MAE: \n']); error_avg
 disp(['Now testing... please wait.']);    
 
 
@@ -132,10 +136,10 @@ for t = simtime				% don't want to subtract time in indices
     r = tanh(x);
     z = wo'*r;
     
-    zpt(ti) = z;
+    zpt(:,ti) = z;
 end
-error_avg = sum(abs(zpt-ft2))/simtime_len;
-disp(['Testing MAE: ' num2str(error_avg,3)]);
+error_avg = sum(abs(zpt-ft2),2)/simtime_len;
+disp(['Testing MAE: \n']); error_avg
 
 
 figure;
@@ -147,7 +151,7 @@ title('training', 'fontsize', fontsize, 'fontweight', fontweight);
 xlabel('time', 'fontsize', fontsize, 'fontweight', fontweight);
 hold on;
 ylabel('f and z', 'fontsize', fontsize, 'fontweight', fontweight);
-legend('f', 'z');
+legend([repmat('f',nUnitsOut,1);repmat('z',nUnitsOut,1)]);
 
 
 subplot 212;
@@ -159,6 +163,6 @@ axis tight;
 title('simulation', 'fontsize', fontsize, 'fontweight', fontweight);
 xlabel('time', 'fontsize', fontsize, 'fontweight', fontweight);
 ylabel('f and z', 'fontsize', fontsize, 'fontweight', fontweight);
-legend('f', 'z');
+legend([repmat('f',nUnitsOut,1);repmat('z',nUnitsOut,1)]);
 	
 
