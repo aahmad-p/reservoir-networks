@@ -6,6 +6,7 @@
 % Rodrigo Laje & Dean V. Buonomano 2013
 
 
+plot_recurrent_activity = 0;
 
 if GET_TARGET_INNATE_X == 1
 	noise_amp = 0;
@@ -84,8 +85,8 @@ end
 
 %% main loop
 
-figure(1);
-clf(1);
+%figure(1);
+%clf(1);
 
 
 X_history = zeros(numUnits,n_steps);
@@ -93,7 +94,7 @@ Out_history = zeros(numOut,n_steps);
 
 % training/testing loop
 for j = 1:n_loops
-
+    figure;   
 	fprintf('  loop: ');
 
 	% auxiliary variables for the training plot
@@ -103,9 +104,10 @@ for j = 1:n_loops
 	dW_recurr_len = zeros(1,n_steps);
 	train_window = 0;
 
-	% initial conditions
-	Xv = 1*(2*rand(numUnits,1)-1);
-	X = sigmoid(Xv);
+	% initial conditions: try - nonrandom initial conditions
+	%Xv = 1*(2*rand(numUnits,1)-1);
+    Xv = zeros(numUnits,1);
+	X = sigmoid(Xv);    %tanh
 	Out = zeros(numOut,1);
 
 
@@ -118,7 +120,7 @@ for j = 1:n_loops
 
 		Input = input_pattern(:,i);
 
-		% update units
+		% update units: X is the firing rate
 		noise = noise_amp*randn(numUnits,1)*sqrt(dt);
 		Xv_current = WXX*X + WInputX*Input + noise;
 		Xv = Xv + ((-Xv + Xv_current)./tau)*dt;
@@ -180,7 +182,11 @@ for j = 1:n_loops
 
 	% plot
 	% input, output, target
-	subplot(4,1,1);
+	if(plot_recurrent_activity==1)
+        subplot(4,1,1);
+    else
+        subplot(2,1,1);
+    end
 	plot(time_axis(1:plot_skip:length(target_Out))-start_train, target_Out(1:plot_skip:end),'g-','linewidth', lwidth);
 	hold on;
 	for input_nbr = 1:numInputs
@@ -191,17 +197,23 @@ for j = 1:n_loops
 	xlim([time_axis([1 end]) - start_train]);
 
 	% recurrent activity
-	subplot(4,1,[2 3]);
-	for x_unit = 1:10
-		plot(time_axis(1:plot_skip:end)-start_train, X_history(x_unit,1:plot_skip:end)+2*x_unit);
-		hold all;
-	end
-	hold on
-	xlim([time_axis([1 end]) - start_train]);
-	ylabel('Recurrent units', 'fontsize', fsize);
+	if(plot_recurrent_activity==1)
+        subplot(4,1,[2 3]);
+        for x_unit = 1:10
+            plot(time_axis(1:plot_skip:end)-start_train, X_history(x_unit,1:plot_skip:end)+2*x_unit);
+            hold all;
+        end
+        hold on
+        xlim([time_axis([1 end]) - start_train]);
+        ylabel('Recurrent units', 'fontsize', fsize);
+    end
 
 	% training measures
-	subplot(4,1,4);
+	if(plot_recurrent_activity==1)
+        subplot(4,1,4);
+    else
+        subplot(2,1,2);
+    end
 	if TRAIN_RECURR == 0
 		plot(time_axis(1:plot_skip:end)-start_train, WXOut_len(1:plot_skip:end), 'linewidth', lwidth);
 		ylabel('|WXOut|', 'fontsize', fsize);
@@ -213,7 +225,12 @@ for j = 1:n_loops
 	end
 	xlim([time_axis([1 end]) - start_train]);
 	xlabel('time (ms)');
-	pause(0.1);
+	pause(0.5);
+    
+    %mtit
+    title({sprintf('GET INNATE TRAJECTORY: %d | RECURRENT: %d',GET_TARGET_INNATE_X, TRAIN_RECURR),...
+        sprintf('READOUT: %d | TESTING: %d | loop: %2d/%2d',TRAIN_READOUT, ~(TRAIN_RECURR&TRAIN_READOUT&GET_TARGET_INNATE_X), j,n_loops)});
+    pause(0.1);
 
 end
 

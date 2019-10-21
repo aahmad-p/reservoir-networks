@@ -1,6 +1,6 @@
 %% Innate Trajectory training
 % Train a nonlinear random recurrent network to reproduce its own innate trajectory.
-% Calls DAC_timing_kernel.m
+% Calls timing_kernel.m
 % Written by Rodrigo Laje
 
 % "Robust Timing and Motor Patterns by Taming Chaos in Recurrent Neural Networks"
@@ -10,7 +10,7 @@
 clear;
 lwidth = 2;
 fsize = 10;
-
+set(0,'DefaultFigureWindowStyle','docked');
 
 
 % parameters and hyperparameters
@@ -34,9 +34,9 @@ interval = 1000;
 learn_every = 2;		% skip time points
 start_train = start_pulse + reset_duration;
 end_train = start_train + interval + 150;
-n_learn_loops_recu = 2;		% number of training loops (recurrent)
-n_learn_loops_read = 10;		% number of training loops (readout)
-n_test_loops = 10;
+n_learn_loops_recu = 0;		% number of training loops (recurrent)
+n_learn_loops_read = 2;		% number of training loops (readout)
+n_test_loops = 1;
 
 % numerics
 dt = 1;					% numerical integration time step
@@ -52,7 +52,7 @@ end
 % firing rate model
 tau = 10.0;							% time constant (ms)
 sigmoid = @(x) tanh(x);			% activation function
-noise_amplitude = 0.001;
+noise_amplitude = 0;
 
 % output function
 ready_level = 0.2;

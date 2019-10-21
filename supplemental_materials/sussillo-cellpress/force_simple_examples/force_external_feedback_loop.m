@@ -20,13 +20,13 @@ nsecs = 1440;
 dt = 0.1;
 learn_every = 2;
 
-tau = 50;
+tau = 30;
 
 scale = 1.0/sqrt(p*N);
 M = sprandn(N,N,p)*g*scale;
 M = full(M);
 
-nReadoutUnits = 5;
+nReadoutUnits = 3;
 nRec2Out = N;
 wo = zeros(nRec2Out,nReadoutUnits);
 dw = zeros(nRec2Out,nReadoutUnits);
